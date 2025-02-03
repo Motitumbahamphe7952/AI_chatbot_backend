@@ -84,8 +84,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const app = express();
 app.use(
   cors({
-    origin:
-      "https://ai-chatbot-backend-lknotplyk-nikhil-limbus-projects.vercel.app",
+    origin: "https://ai-chatbot-frontend-roan.vercel.app/",
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type", "Authorization"],
     exposedHeaders: ["Content-Type", "Authorization"],
@@ -152,4 +151,5 @@ app.post("/chat", async (req, res) => {
     });
   }
 });
+
 export default app;

@@ -1,5 +1,3 @@
-
-
 // import express from "express";
 // import cors from "cors";
 // import axios from "axios";
@@ -15,7 +13,6 @@
 // const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 // const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateText?key=${GEMINI_API_KEY}`;
 
-
 // app.listen(PORT, () => {
 //   console.log(`✅ Server running on port ${PORT}`);
 // });
@@ -28,7 +25,6 @@
 
 // // Store conversation history
 // let conversationHistory = [];
-
 
 // app.get("/", (req, res) => {
 //   res.send("Hello, this is AI CHATBOT backend server");
@@ -85,9 +81,13 @@ dotenv.config();
 const PORT = process.env.PORT || 5000;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-
 const app = express();
-app.use(cors());
+app.use(
+  cors({
+    origin:"https://ai-chatbot-backend-lknotplyk-nikhil-limbus-projects.vercel.app",
+    methods: ["GET", "POST"],
+  })
+);
 app.use(express.json());
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
@@ -138,7 +138,10 @@ app.post("/chat", async (req, res) => {
 
     res.json({ botReply });
   } catch (error) {
-    console.error("Error from Gemini API:", error.response?.data || error.message);
+    console.error(
+      "Error from Gemini API:",
+      error.response?.data || error.message
+    );
     res.status(500).json({
       error: "Error processing request",
       details: error.response?.data || error.message,

@@ -82,16 +82,16 @@ import cors from "cors";
 // import axios from "axios";
 import dotenv from "dotenv";
 dotenv.config();
-const PORT = process.env.PORT || 5000;
+// const PORT = process.env.PORT || 5000;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
-});
+// app.listen(PORT, () => {
+//   console.log(`✅ Server running on port ${PORT}`);
+// });
 
 // Check if API key exists
 if (!GEMINI_API_KEY) {
@@ -145,3 +145,4 @@ app.post("/chat", async (req, res) => {
     });
   }
 });
+export default app;

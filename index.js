@@ -106,19 +106,17 @@ app.post("/chat", async (req, res) => {
     // Add user input to conversation history
     conversationHistory.push({ role: "user", content: userInput });
 
+    // Initialize Gemini AI
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" }); 
 
-    // Send conversation history
-    const chat = model.startChat({
-      history: conversationHistory,
-      generationConfig: {
-        maxOutputTokens: 100,
-      },
+    // Send request to Gemini API
+    const result = await model.generateContent({
+      contents: [{ parts: [{ text: userInput }] }]
     });
 
-    const result = await chat.sendMessage(userInput);
-    const botReply = result.response.text(); // Correctly extracting response
+    
+    const botReply = result.response.candidates?.[0]?.content?.parts?.[0]?.text || "No response from AI.";
 
     console.log("Gemini API Response:", botReply);
 
@@ -132,7 +130,7 @@ app.post("/chat", async (req, res) => {
 
     res.json({ botReply });
   } catch (error) {
-    console.error("Error from Gemini API:", error.message || error);
+    console.error("❌ Error from Gemini API:", error.message || error);
     res.status(500).json({
       error: "Error processing request",
       details: error.message || "Unknown error occurred",
@@ -141,4 +139,3 @@ app.post("/chat", async (req, res) => {
 });
 
 export default app;
-

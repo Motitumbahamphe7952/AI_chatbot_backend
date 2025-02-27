@@ -71,32 +71,21 @@
 // });
 
 // const { GoogleGenerativeAI } = require("@google/generative-ai");
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
+
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import express from "express";
 import cors from "cors";
-// import axios from "axios";
 import dotenv from "dotenv";
+
 dotenv.config();
-// const PORT = process.env.PORT || 5000;
+
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 const app = express();
-app.use(
-  cors({
-    origin: "*",
-    methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    exposedHeaders: ["Content-Type", "Authorization"],
-    credentials: false,
-  })
-);
+app.use(cors({ origin: "*", methods: ["GET", "POST"], allowedHeaders: ["Content-Type"] }));
 app.use(express.json());
-// app.listen(PORT, () => {
-//   console.log(`✅ Server running on port ${PORT}`);
-// });
 
-// Check if API key exists
 if (!GEMINI_API_KEY) {
   console.error("❌ Error: Gemini API key is missing! Check your .env file.");
   process.exit(1);
@@ -120,16 +109,18 @@ app.post("/chat", async (req, res) => {
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-    const prompt = conversationHistory.map((msg) => msg.content).join("\n");
-
-    const response = await model.generateContent(prompt, {
-      max_tokens: 100,
+    // Send conversation history
+    const chat = model.startChat({
+      history: conversationHistory,
+      generationConfig: {
+        maxOutputTokens: 100,
+      },
     });
 
-    console.log("Gemini API Response:", response.response.text());
+    const result = await chat.sendMessage(userInput);
+    const botReply = result.response.text(); // Correctly extracting response
 
-    // Extract bot reply from Gemini response
-    const botReply = response.response.text();
+    console.log("Gemini API Response:", botReply);
 
     // Add bot reply to conversation history
     conversationHistory.push({ role: "bot", content: botReply });
@@ -141,15 +132,13 @@ app.post("/chat", async (req, res) => {
 
     res.json({ botReply });
   } catch (error) {
-    console.error(
-      "Error from Gemini API:",
-      error.response?.data || error.message
-    );
+    console.error("Error from Gemini API:", error.message || error);
     res.status(500).json({
       error: "Error processing request",
-      details: error.response?.data || error.message,
+      details: error.message || "Unknown error occurred",
     });
   }
 });
 
 export default app;
+

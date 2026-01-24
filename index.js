@@ -12,7 +12,7 @@ const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const app = express();
 app.use(
   cors({
-    origin: "*",
+    origin: ["https://ai-chatbot-frontend.motitumbahamphe.com.np"],
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),

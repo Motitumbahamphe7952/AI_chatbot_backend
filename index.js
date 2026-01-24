@@ -1,23 +1,25 @@
+// import { GoogleGenerativeAI } from "@google/generative-ai";
+
 // import express from "express";
 // import cors from "cors";
-// import axios from "axios";
+// // import axios from "axios";
 // import dotenv from "dotenv";
-
-// dotenv.config(); // Load environment variables
+// dotenv.config();
+// const PORT = process.env.PORT || 5000;
+// const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 // const app = express();
-// app.use(cors());
+// app.use(
+//   cors({
+//     origin: "*",
+//     methods: ["GET", "POST"],
+//     allowedHeaders: ["Content-Type", "Authorization"],
+//     exposedHeaders: ["Content-Type", "Authorization"],
+//     credentials: false,
+//   })
+// );
 // app.use(express.json());
 
-// const PORT = 5000;
-// const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-// const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateText?key=${GEMINI_API_KEY}`;
-
-// app.listen(PORT, () => {
-//   console.log(`✅ Server running on port ${PORT}`);
-// });
-
-// // Check if API key exists
 // if (!GEMINI_API_KEY) {
 //   console.error("❌ Error: Gemini API key is missing! Check your .env file.");
 //   process.exit(1);
@@ -38,19 +40,19 @@
 //     // Add user input to conversation history
 //     conversationHistory.push({ role: "user", content: userInput });
 
-//     const requestBody = {
-//       contents: [{ parts: [{ text: conversationHistory.map((msg) => msg.content).join("\n") }] }],
-//       message: userInput,
-//     };
+//     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+//     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-//     const response = await axios.post(GEMINI_API_URL, requestBody, {
-//       headers: { "Content-Type": "application/json" },
+//     const prompt = conversationHistory.map((msg) => msg.content).join("\n");
+
+//     const response = await model.generateContent(prompt, {
+//       max_tokens: 100,
 //     });
 
-//     console.log("Gemini API Response:", response.data);
+//     console.log("Gemini API Response:", response.response.text());
 
 //     // Extract bot reply from Gemini response
-//     const botReply = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I didn't understand that.";
+//     const botReply = response.response.text();
 
 //     // Add bot reply to conversation history
 //     conversationHistory.push({ role: "bot", content: botReply });
@@ -62,7 +64,10 @@
 
 //     res.json({ botReply });
 //   } catch (error) {
-//     console.error("Error from Gemini API:", error.response?.data || error.message);
+//     console.error(
+//       "Error from Gemini API:",
+//       error.response?.data || error.message
+//     );
 //     res.status(500).json({
 //       error: "Error processing request",
 //       details: error.response?.data || error.message,
@@ -70,16 +75,17 @@
 //   }
 // });
 
-// const { GoogleGenerativeAI } = require("@google/generative-ai");
-import { GoogleGenerativeAI } from "@google/generative-ai";
+// export default app;
 
 import express from "express";
 import cors from "cors";
-// import axios from "axios";
+import axios from "axios";
 import dotenv from "dotenv";
+
 dotenv.config();
+
 // const PORT = process.env.PORT || 5000;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
 const app = express();
 app.use(
@@ -87,18 +93,12 @@ app.use(
     origin: "*",
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    exposedHeaders: ["Content-Type", "Authorization"],
-    credentials: false,
-  })
+  }),
 );
 app.use(express.json());
-// app.listen(PORT, () => {
-//   console.log(`✅ Server running on port ${PORT}`);
-// });
 
-// Check if API key exists
-if (!GEMINI_API_KEY) {
-  console.error("❌ Error: Gemini API key is missing! Check your .env file.");
+if (!OPENROUTER_API_KEY) {
+  console.error("❌ Error: OPENROUTER_API_KEY is missing in .env");
   process.exit(1);
 }
 
@@ -114,27 +114,32 @@ app.post("/chat", async (req, res) => {
     const userInput = req.body.message;
     console.log("Received user input:", userInput);
 
-    // Add user input to conversation history
     conversationHistory.push({ role: "user", content: userInput });
 
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    // Request to Deepseek via OpenRouter
+    const response = await axios.post(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        model: "deepseek/deepseek-chat",
+        messages: conversationHistory,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+      },
+    );
 
-    const prompt = conversationHistory.map((msg) => msg.content).join("\n");
+    const botReply =
+      response.data.choices?.[0]?.message?.content || "No response";
 
-    const response = await model.generateContent(prompt, {
-      max_tokens: 100,
-    });
+    console.log("DeepSeek Response:", botReply);
 
-    console.log("Gemini API Response:", response.response.text());
+    // Push bot reply into history
+    conversationHistory.push({ role: "assistant", content: botReply });
 
-    // Extract bot reply from Gemini response
-    const botReply = response.response.text();
-
-    // Add bot reply to conversation history
-    conversationHistory.push({ role: "bot", content: botReply });
-
-    // Limit history to last 5 exchanges (to avoid excessive API usage)
+    // Keep only last 10 messages to avoid overload
     if (conversationHistory.length > 10) {
       conversationHistory = conversationHistory.slice(-10);
     }
@@ -142,8 +147,8 @@ app.post("/chat", async (req, res) => {
     res.json({ botReply });
   } catch (error) {
     console.error(
-      "Error from Gemini API:",
-      error.response?.data || error.message
+      "Error from OpenRouter:",
+      error.response?.data || error.message,
     );
     res.status(500).json({
       error: "Error processing request",
@@ -151,5 +156,7 @@ app.post("/chat", async (req, res) => {
     });
   }
 });
+
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 
 export default app;
